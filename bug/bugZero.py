@@ -83,12 +83,12 @@ class BugZero:
                 'x': 1,
                 'y': 0
             }
-        elif (angle <= 135.0) and (angle > 45.0):
+        elif (angle < 135.0) and (angle > 45.0):
             return {
                 'x': 0,
                 'y': -1
             }
-        elif (angle <= 225.0) and (angle > 135.0):
+        elif (angle <= 225.0) and (angle >= 135.0):
             return {
                 'x': -1,
                 'y': 0
@@ -117,6 +117,17 @@ class BugZero:
 
     def obstacleOnRightSensor(self, sensors: type.List[type.Dict[str, int]]) -> bool:
         if self.__map[self.__robotPosition['y'] + sensors[2]['y']][self.__robotPosition['x'] + sensors[2]['x']] == 1:
+            return True
+        else:
+            return False
+
+    def obstacleOnSensor(self, sensors: type.List[type.Dict[str, int]], sensor: str) -> bool:
+        index = 0
+        if sensor == 'left':
+            index = 2
+        elif sensor == 'right':
+            index = 0
+        if self.__map[self.__robotPosition['y'] + sensors[index]['y']][self.    __robotPosition['x'] + sensors[index]['x']] == 1:
             return True
         else:
             return False
@@ -196,6 +207,7 @@ class BugZero:
         sensorsToCheck: type.List[type.Dict[str, int]
                                   ] = self.getCurrentRobotSensors(robotOrientation)
         test: int = 0
+        #self.__robotPosition != self.__targetPosition
         while self.__robotPosition != self.__targetPosition:
             test += 1
             if state == 0:
@@ -215,24 +227,31 @@ class BugZero:
                     state = 1
             if state == 1:
                 print('robot obraca sie w lewo')
-                robotOrientation = self.rotateRobot(robotOrientation, 'left')
+                robotOrientation = self.rotateRobot(
+                    robotOrientation, self.__direction)
                 sensorsToCheck = self.getCurrentRobotSensors(
                     robotOrientation)
                 state = 2
             if state == 2:
-                if self.canRobotMakeMove(sensorsToCheck) and self.obstacleOnRightSensor(sensorsToCheck):
+                if self.canRobotMakeMove(sensorsToCheck) and self.obstacleOnSensor(sensorsToCheck, self.__direction):
                     print('robot moze do przodu i ma przeszkode po prawej')
                     self.__robotPosition['x'] += robotOrientation['x']
                     self.__robotPosition['y'] += robotOrientation['y']
                     allRobotPositions.append(self.__robotPosition)
-                elif not self.obstacleOnRightSensor(sensorsToCheck):
+                elif not self.obstacleOnSensor(sensorsToCheck, self.__direction):
                     print('robot chcial do przodu ale nie ma po prawej przeszkody')
                     state = 3
                 elif not self.canRobotMakeMove(sensorsToCheck):
                     state = 1
             if state == 3:
                 print('robot skreca w prawo i rusza do przodu')
-                robotOrientation = self.rotateRobot(robotOrientation, 'right')
+                if self.__direction == 'left':
+                    robotOrientation = self.rotateRobot(
+                        robotOrientation, 'right')
+                if self.__direction == 'right':
+                    print('rotacja w lewo')
+                    robotOrientation = self.rotateRobot(
+                        robotOrientation, 'left')
                 sensorsToCheck = self.getCurrentRobotSensors(
                     robotOrientation)
                 self.__robotPosition['x'] += robotOrientation['x']
@@ -244,7 +263,7 @@ class BugZero:
             print('-------------------')
 
 
-test = BugZero()
-test.loadMapFromFile('map2.txt')
+test = BugZero('right')
+test.loadMapFromFile('map3.txt')
 print(test.getNextRobotMoveToTarget())
 test.findRoute()
