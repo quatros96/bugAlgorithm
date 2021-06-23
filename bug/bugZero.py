@@ -1,3 +1,4 @@
+from os import stat
 import typing as type
 import numpy as np
 
@@ -63,10 +64,7 @@ class BugZero:
         print('Robot pos', self.__robotPosition)
         print('Target pos', self.__targetPosition)
 
-    def findRoute(self):
-        pass
-
-    def getNextRobotMove(self) -> type.Dict[str, int]:
+    def getNextRobotMoveToTarget(self) -> type.Dict[str, int]:
         angle: float = 0
         worldVector = [1, 0]
         directionVector = [self.__targetPosition['x'] - self.__robotPosition['x'],
@@ -80,48 +78,173 @@ class BugZero:
         else:
             angle = 360 - angleRad * (180 / np.pi)
         print(angle)
-        if angle <= 22.5 and angle > 360 - 22.5:
+        if (angle <= 45.0) or (angle > 360.0 - 45.0):
             return {
                 'x': 1,
                 'y': 0
             }
-        elif angle <= 22.5 + 45 and angle > 22.5:
-            return {
-                'x': 1,
-                'y': 1
-            }
-        elif angle <= 22.5 + 90 and angle > 22.5 + 45:
+        elif (angle <= 135.0) and (angle > 45.0):
             return {
                 'x': 0,
-                'y': 1
+                'y': -1
             }
-        elif angle <= 22.5 + 135 and angle > 22.5 + 90:
-            return {
-                'x': -1,
-                'y': 1
-            }
-        elif angle <= 22.5 + 180 and angle > 22.5 + 135:
+        elif (angle <= 225.0) and (angle > 135.0):
             return {
                 'x': -1,
                 'y': 0
             }
-        elif angle <= 22.5 + 225 and angle > 22.5 + 180:
-            return {
-                'x': -1,
-                'y': -1
-            }
-        elif angle <= 22.5 + 270 and angle > 22.5 + 225:
+        elif (angle <= 315) and (angle > 225):
+            print('cos tu nie gra')
             return {
                 'x': 0,
-                'y': -1
+                'y': 1
             }
         else:
             return {
-                'x': 1,
-                'y': -1
+                'x': 0,
+                'y': 0
             }
+
+    def canRobotMakeMove(self, sensors: type.List[type.Dict[str, int]]) -> bool:
+        # print('pierwsza wsp na tab',
+        # self.__robotPosition['y'] + sensors[1]['y'])
+        # print('druga wsp na tablicy',
+        # self.__robotPosition['x'] + sensors[1]['x'])
+        if self.__map[self.__robotPosition['y'] + sensors[1]['y']][self.__robotPosition['x'] + sensors[1]['x']] != 1:
+            return True
+        else:
+            return False
+
+    def obstacleOnRightSensor(self, sensors: type.List[type.Dict[str, int]]) -> bool:
+        if self.__map[self.__robotPosition['y'] + sensors[2]['y']][self.__robotPosition['x'] + sensors[2]['x']] == 1:
+            return True
+        else:
+            return False
+
+    def rotateRobot(self, robotOrientation: type.Dict[str, int], direction: str) -> type.Dict[str, int]:
+        if robotOrientation['x'] == 1 and robotOrientation['y'] == 0:
+            if direction == 'left':
+                return {
+                    'x': 0,
+                    'y': -1
+                }
+            else:
+                return {
+                    'x': 0,
+                    'y': 1
+                }
+        elif robotOrientation['x'] == 0 and robotOrientation['y'] == 1:
+            if direction == 'left':
+                return {
+                    'x': 1,
+                    'y': 0
+                }
+            else:
+                return {
+                    'x': -1,
+                    'y': 0
+                }
+        elif robotOrientation['x'] == -1 and robotOrientation['y'] == 0:
+            if direction == 'left':
+                return {
+                    'x': 0,
+                    'y': 1
+                }
+            else:
+                return {
+                    'x': 0,
+                    'y': -1
+                }
+        else:
+            if direction == 'left':
+                return {
+                    'x': -1,
+                    'y': 0
+                }
+            else:
+                return {
+                    'x': 1,
+                    'y': 0
+                }
+
+    def getCurrentRobotSensors(self, robotOrientation: type.Dict[str, int]) -> type.List[type.Dict[str, int]]:
+        sensorsToCheck: type.List[type.Dict[str, int]] = []
+        # left sensor always first
+        if robotOrientation['x'] == 0 and robotOrientation['y'] < 0:
+            sensorsToCheck.append({'x': -1, 'y': 0})
+            sensorsToCheck.append(robotOrientation)
+            sensorsToCheck.append({'x': 1, 'y': 0})
+        elif robotOrientation['x'] == 0 and robotOrientation['y'] > 0:
+            sensorsToCheck.append({'x': 1, 'y': 0})
+            sensorsToCheck.append(robotOrientation)
+            sensorsToCheck.append({'x': -1, 'y': 0})
+        elif robotOrientation['x'] > 0 and robotOrientation['y'] == 0:
+            sensorsToCheck.append({'x': 0, 'y': -1})
+            sensorsToCheck.append(robotOrientation)
+            sensorsToCheck.append({'x': 0, 'y': 1})
+        else:
+            sensorsToCheck.append({'x': 0, 'y': 1})
+            sensorsToCheck.append(robotOrientation)
+            sensorsToCheck.append({'x': 0, 'y': -1})
+        return sensorsToCheck
+
+    def findRoute(self):
+        state: int = 0
+        allRobotPositions: type.List[type.Dict[str, int]] = [
+            self.__robotPosition]
+        robotOrientation: type.Dict[str, int] = self.getNextRobotMoveToTarget()
+        sensorsToCheck: type.List[type.Dict[str, int]
+                                  ] = self.getCurrentRobotSensors(robotOrientation)
+        test: int = 0
+        while self.__robotPosition != self.__targetPosition:
+            test += 1
+            if state == 0:
+                if self.canRobotMakeMove(sensorsToCheck):
+                    print('robot idzie do przodu')
+                    self.__robotPosition['x'] += robotOrientation['x']
+                    self.__robotPosition['y'] += robotOrientation['y']
+                    allRobotPositions.append(self.__robotPosition)
+                    robotOrientation = self.getNextRobotMoveToTarget()
+                    sensorsToCheck = self.getCurrentRobotSensors(
+                        robotOrientation)
+                else:
+                    print('robot nie moze do przodu')
+                    #robotOrientation = self.getNextRobotMoveToTarget()
+                    sensorsToCheck = self.getCurrentRobotSensors(
+                        robotOrientation)
+                    state = 1
+            if state == 1:
+                print('robot obraca sie w lewo')
+                robotOrientation = self.rotateRobot(robotOrientation, 'left')
+                sensorsToCheck = self.getCurrentRobotSensors(
+                    robotOrientation)
+                state = 2
+            if state == 2:
+                if self.canRobotMakeMove(sensorsToCheck) and self.obstacleOnRightSensor(sensorsToCheck):
+                    print('robot moze do przodu i ma przeszkode po prawej')
+                    self.__robotPosition['x'] += robotOrientation['x']
+                    self.__robotPosition['y'] += robotOrientation['y']
+                    allRobotPositions.append(self.__robotPosition)
+                elif not self.obstacleOnRightSensor(sensorsToCheck):
+                    print('robot chcial do przodu ale nie ma po prawej przeszkody')
+                    state = 3
+                elif not self.canRobotMakeMove(sensorsToCheck):
+                    state = 1
+            if state == 3:
+                print('robot skreca w prawo i rusza do przodu')
+                robotOrientation = self.rotateRobot(robotOrientation, 'right')
+                sensorsToCheck = self.getCurrentRobotSensors(
+                    robotOrientation)
+                self.__robotPosition['x'] += robotOrientation['x']
+                self.__robotPosition['y'] += robotOrientation['y']
+                allRobotPositions.append(self.__robotPosition)
+                state = 0
+            print('position', self.__robotPosition)
+            print('orientation', robotOrientation)
+            print('-------------------')
 
 
 test = BugZero()
-test.loadMapFromFile('map.txt')
-print(test.getNextRobotMove())
+test.loadMapFromFile('map2.txt')
+print(test.getNextRobotMoveToTarget())
+test.findRoute()
