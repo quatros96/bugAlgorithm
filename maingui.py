@@ -120,34 +120,27 @@ class MyGui:
         self.__nextButton['state'] = "normal"
 
     def __configDirectionButtons(self):
-        self.__directionLeftCheck = tk.Checkbutton(
-            self.__window, text="Do lewej", command=self.__leftOnClicked, variable=self.__directionLeftCheckState)
-        self.__directionLeftCheck.grid(column=2, row=4, columnspan=2)
-        self.__directionLeftCheck.select()
+        self.__directionLeftCheck = tk.Button(
+            self.__window, text="Do lewej", command=self.__leftOnClicked, bg="white")
+        self.__directionLeftCheck.grid(column=1, row=4, columnspan=2)
+        self.__directionLeftCheck['state'] = tk.ACTIVE
 
-        self.__directionRightCheck = tk.Checkbutton(
-            self.__window, text="Do prawej", command=self.__rightOnClicked, variable=self.__directionRightCheckState)
-        self.__directionRightCheck.grid(column=2, row=5, columnspan=2)
+        self.__directionRightCheck = tk.Button(
+            self.__window, text="Do prawej", command=self.__rightOnClicked, bg="#878787")
+        self.__directionRightCheck.grid(column=3, row=4, columnspan=2)
+        self.__directionLeftCheck['state'] = 'normal'
 
     def __leftOnClicked(self):
-        if self.__directionLeftCheckState == 1:
-            self.__bugAlgorithm.changeDirection('left')
-            self.__directionRightCheck.deselect()
-            print('left')
-        else:
-            self.__bugAlgorithm.changeDirection('right')
-            self.__directionRightCheck.select()
-            print('right')
+        self.__bugAlgorithm.changeDirection('left')
+        self.__directionLeftCheck.config(bg="white")
+        self.__directionRightCheck.config(bg="#878787")
+        print('left')
 
     def __rightOnClicked(self):
-        if self.__directionRightCheckState == 1:
-            self.__bugAlgorithm.changeDirection('right')
-            self.__directionLeftCheck.deselect()
-            print('right')
-        else:
-            self.__bugAlgorithm.changeDirection('left')
-            self.__directionLeftCheck.select()
-            print('left')
+        self.__bugAlgorithm.changeDirection('right')
+        self.__directionLeftCheck.config(bg="#878787")
+        self.__directionRightCheck.config(bg="white")
+        print('right')
 
     def __configCanvas(self):
         self.__canvas = tk.Canvas(
@@ -193,6 +186,3 @@ class MyGui:
                     boxSize * move['x'], boxSize * move['y'], boxSize*move['x'] + boxSize, boxSize * move['y'] + boxSize, fill="#EC6565")
                 self.__canvas.create_text(
                     boxSize*move['x'] + boxSize / 2, boxSize * move['y'] + boxSize / 2, text=number)
-
-
-test = MyGui()
