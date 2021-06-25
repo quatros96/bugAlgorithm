@@ -1,6 +1,6 @@
-from os import stat
 import typing as type
 import numpy as np
+import copy
 
 
 class BugZero:
@@ -12,6 +12,10 @@ class BugZero:
             'x': -1,
             'y': -1
         }
+        self.__startRobotPosition: type.Dict[str, int] = {
+            'x': -1,
+            'y': -1
+        }
         self.__targetPosition: type.Dict[str, int] = {
             'x': -1,
             'y': -1
@@ -19,7 +23,14 @@ class BugZero:
         self.__map: type.List[type.List[int]] = []
         self.__validFields: type.List[int] = [0, 1, 2, 3]
 
+    def changeDirection(self, direction: str):
+        self.__direction = direction
+
+    def getMap(self) -> type.List[type.List[int]]:
+        return self.__map
+
     def loadMapFromFile(self, path):
+        self.__map = []
         try:
             with open(path) as file:
                 try:
@@ -56,13 +67,15 @@ class BugZero:
                         raise Exception('Robot or target not found!')
                 except Exception as e:
                     print(e)
-                    return
-        except EnvironmentError:
+                    return e
+        except EnvironmentError as filErr:
             print('File error!')
-            return
+            return filErr
         print(np.array(self.__map))
         print('Robot pos', self.__robotPosition)
         print('Target pos', self.__targetPosition)
+        self.__startRobotPosition = copy.deepcopy(self.__robotPosition)
+        return None
 
     def getNextRobotMoveToTarget(self) -> type.Dict[str, int]:
         angle: float = 0
@@ -106,10 +119,6 @@ class BugZero:
             }
 
     def canRobotMakeMove(self, sensors: type.List[type.Dict[str, int]]) -> bool:
-        # print('pierwsza wsp na tab',
-        # self.__robotPosition['y'] + sensors[1]['y'])
-        # print('druga wsp na tablicy',
-        # self.__robotPosition['x'] + sensors[1]['x'])
         if self.__map[self.__robotPosition['y'] + sensors[1]['y']][self.__robotPosition['x'] + sensors[1]['x']] != 1:
             return True
         else:
@@ -200,9 +209,10 @@ class BugZero:
         return sensorsToCheck
 
     def findRoute(self):
+        self.__robotPosition = copy.deepcopy(self.__startRobotPosition)
         state: int = 0
         allRobotPositions: type.List[type.Dict[str, int]] = [
-            self.__robotPosition]
+            copy.deepcopy(self.__startRobotPosition)]
         robotOrientation: type.Dict[str, int] = self.getNextRobotMoveToTarget()
         sensorsToCheck: type.List[type.Dict[str, int]
                                   ] = self.getCurrentRobotSensors(robotOrientation)
@@ -215,10 +225,11 @@ class BugZero:
                     print('robot idzie do przodu')
                     self.__robotPosition['x'] += robotOrientation['x']
                     self.__robotPosition['y'] += robotOrientation['y']
-                    allRobotPositions.append(self.__robotPosition)
                     robotOrientation = self.getNextRobotMoveToTarget()
                     sensorsToCheck = self.getCurrentRobotSensors(
                         robotOrientation)
+                    allRobotPositions.append(
+                        copy.deepcopy(self.__robotPosition))
                 else:
                     print('robot nie moze do przodu')
                     #robotOrientation = self.getNextRobotMoveToTarget()
@@ -237,7 +248,8 @@ class BugZero:
                     print('robot moze do przodu i ma przeszkode po prawej')
                     self.__robotPosition['x'] += robotOrientation['x']
                     self.__robotPosition['y'] += robotOrientation['y']
-                    allRobotPositions.append(self.__robotPosition)
+                    allRobotPositions.append(
+                        copy.deepcopy(self.__robotPosition))
                 elif not self.obstacleOnSensor(sensorsToCheck, self.__direction):
                     print('robot chcial do przodu ale nie ma po prawej przeszkody')
                     state = 3
@@ -256,14 +268,9 @@ class BugZero:
                     robotOrientation)
                 self.__robotPosition['x'] += robotOrientation['x']
                 self.__robotPosition['y'] += robotOrientation['y']
-                allRobotPositions.append(self.__robotPosition)
+                allRobotPositions.append(copy.deepcopy(self.__robotPosition))
                 state = 0
             print('position', self.__robotPosition)
             print('orientation', robotOrientation)
             print('-------------------')
-
-
-test = BugZero('right')
-test.loadMapFromFile('map3.txt')
-print(test.getNextRobotMoveToTarget())
-test.findRoute()
+        return allRobotPositions
